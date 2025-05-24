@@ -1,14 +1,22 @@
 import os
+import time
 from dotenv import load_dotenv
 from src.drive.monitor import DriveMonitor
 from src.drive.downloader import DriveDownloader
+from src.processor.processor import ContentProcessor
+from src.database.content_db import ContentDatabase
 
-def handle_new_files(files):
-    """Callback function to handle newly detected files."""
-    print(f"New files detected: {[f['name'] for f in files]}")
-    downloader = DriveDownloader(monitor.service)
-    downloaded_files = downloader.download_files(files)
-    print(f"Downloaded files: {downloaded_files}")
+def process_files(files, processor):
+    """Process a list of files."""
+    for file in files:
+        file_path = os.path.join("downloads", file['name'])
+        if os.path.exists(file_path):
+            processor.process_file(
+                file_path=file_path,
+                file_id=file['id'],
+                mime_type=file['mimeType'],
+                modified_time=file['modifiedTime']
+            )
 
 def main():
     # Load environment variables
@@ -23,14 +31,58 @@ def main():
     # Check for GCP credentials
     if not os.getenv('GOOGLE_APPLICATION_CREDENTIALS'):
         print("Warning: GOOGLE_APPLICATION_CREDENTIALS not set. Will try to use OAuth2 flow.")
-    
-    # Initialize and start the monitor
-    global monitor
+
+    # Initialize components
     monitor = DriveMonitor(folder_id)
-    
-    # Start monitoring for changes
-    print("Starting file monitor...")
-    monitor.start_monitoring(handle_new_files)
+    downloader = DriveDownloader(monitor.service)
+    processor = ContentProcessor()
+    db = ContentDatabase()
+
+    print("RhettAI - AI-powered educational assistant")
+    print("=========================================")
+    print("\nInitializing...")
+
+    # Process any existing files in downloads directory
+    if os.path.exists("downloads"):
+        existing_files = []
+        for filename in os.listdir("downloads"):
+            # Get file metadata from Drive
+            file_metadata = monitor.get_folder_contents()
+            if file_metadata:
+                existing_files.extend(file_metadata)
+        
+        if existing_files:
+            print(f"\nProcessing {len(existing_files)} existing files...")
+            process_files(existing_files, processor)
+
+    print("\nStarting Drive monitor...")
+    print("Press Ctrl+C to stop")
+
+    try:
+        while True:
+            # Check for new or modified files
+            changes = monitor.check_for_updates()
+            
+            if changes:
+                print(f"\nFound {len(changes)} changes:")
+                for change in changes:
+                    print(f"- {change['name']} ({change['mimeType']})")
+                
+                # Download new/modified files
+                for file in changes:
+                    downloader.download_file(file)
+                
+                # Process the files
+                process_files(changes, processor)
+            
+            time.sleep(60)  # Check every minute
+
+    except KeyboardInterrupt:
+        print("\nStopping RhettAI...")
+    except Exception as e:
+        print(f"\nError: {e}")
+    finally:
+        print("Goodbye!")
 
 if __name__ == "__main__":
     main() 

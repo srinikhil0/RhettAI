@@ -25,9 +25,11 @@ class DriveMonitor:
             # Try to use existing service account credentials
             credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
             if credentials_path and os.path.exists(credentials_path):
+                print(f"Using service account credentials from: {credentials_path}")
                 self.creds = service_account.Credentials.from_service_account_file(
                     credentials_path, scopes=self.SCOPES)
             else:
+                print("No service account credentials found, falling back to OAuth2")
                 # Fallback to OAuth2 if no service account credentials found
                 if os.path.exists('token.pickle'):
                     with open('token.pickle', 'rb') as token:
@@ -54,22 +56,29 @@ class DriveMonitor:
     def get_folder_contents(self) -> List[Dict]:
         """Get all files in the specified folder."""
         try:
+            print(f"Fetching contents of folder: {self.folder_id}")
             results = self.service.files().list(
                 q=f"'{self.folder_id}' in parents and trashed=false",
                 pageSize=100,
                 fields="nextPageToken, files(id, name, mimeType, modifiedTime)"
             ).execute()
             
-            return results.get('files', [])
+            files = results.get('files', [])
+            print(f"Found {len(files)} files in folder")
+            for file in files:
+                print(f"- {file['name']} ({file['mimeType']})")
+            return files
         except Exception as e:
             print(f"Error fetching folder contents: {e}")
             return []
 
     def check_for_updates(self) -> List[Dict]:
         """Check for new or modified files since last check."""
+        print("\nChecking for updates...")
         current_files = self.get_folder_contents()
         
         if not self.last_check:
+            print("First check - all files are considered new")
             self.last_check = current_files
             return current_files
 
@@ -84,10 +93,12 @@ class DriveMonitor:
             )
             
             if not matching_file:
+                print(f"New file detected: {current_file['name']}")
                 new_files.append(current_file)
             else:
                 last_time = datetime.fromisoformat(matching_file['modifiedTime'].replace('Z', '+00:00'))
                 if current_time > last_time:
+                    print(f"Modified file detected: {current_file['name']}")
                     new_files.append(current_file)
 
         self.last_check = current_files
@@ -102,8 +113,13 @@ class DriveMonitor:
             interval: Check interval in seconds (default: 5 minutes)
         """
         print(f"Starting to monitor folder {self.folder_id}")
+        print(f"Check interval: {interval} seconds")
         while True:
             new_files = self.check_for_updates()
             if new_files:
+                print(f"\nProcessing {len(new_files)} new/modified files...")
                 callback(new_files)
+            else:
+                print("No new or modified files found")
+            print(f"Waiting {interval} seconds until next check...")
             time.sleep(interval) 
