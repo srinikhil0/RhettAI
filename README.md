@@ -10,27 +10,53 @@ RhettAI is an intelligent educational assistant designed to help university stud
 - Study planning and deadline reminders
 - Context-aware responses with citations
 
+## Prerequisites
+
+- Python 3.8 or higher
+- Google Cloud Project with enabled APIs
+- Firebase Project (optional, for future features)
+- Google Drive folder with course materials
+
 ## Setup
 
-1. Clone the repository
-2. Install dependencies:
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/RhettAI.git
+   cd RhettAI
+   ```
+
+2. Create and activate a virtual environment:
+   ```bash
+   python -m venv venv
+   # On Windows
+   .\venv\Scripts\activate
+   # On Unix or MacOS
+   source venv/bin/activate
+   ```
+
+3. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-3. Set up Google Drive API:
-   - Create a project in Google Cloud Console
-   - Enable Google Drive API
-   - Create credentials (OAuth 2.0)
-   - Download the credentials JSON file
-   - Rename it to `credentials.json` and place it in the project root
 
-4. Create a `.env` file with the following variables:
+4. Set up Google Cloud:
+   - Go to [Google Cloud Console](https://console.cloud.google.com)
+   - Enable required APIs:
+     - Google Drive API
+     - Google Cloud Storage API (optional)
+     - Firebase Admin SDK API (optional)
+   - Create a service account and download credentials
+   - Share your Google Drive folder with the service account email
+
+5. Set up environment variables:
+   Create a `.env` file in the project root:
    ```
    GOOGLE_DRIVE_FOLDER_ID=your_folder_id
-   OPENAI_API_KEY=your_openai_api_key
+   GOOGLE_APPLICATION_CREDENTIALS=./service-account-key.json
+   FIREBASE_CREDENTIALS=./firebase-service-account.json  # Optional
    ```
 
-5. Run the application:
+6. Run the application:
    ```bash
    python main.py
    ```
@@ -41,8 +67,8 @@ RhettAI is an intelligent educational assistant designed to help university stud
 RhettAI/
 ├── src/
 │   ├── drive/
-│   │   ├── monitor.py
-│   │   └── downloader.py
+│   │   ├── monitor.py    # Google Drive monitoring
+│   │   └── downloader.py # File downloading
 │   ├── processor/
 │   │   ├── pdf_parser.py
 │   │   └── slide_parser.py
@@ -57,6 +83,40 @@ RhettAI/
 └── README.md
 ```
 
+## Development
+
+1. Create a new branch for your feature:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+2. Make your changes and commit:
+   ```bash
+   git add .
+   git commit -m "Description of your changes"
+   ```
+
+3. Push to GitHub:
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+
+4. Create a Pull Request on GitHub
+
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. 
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Google Drive API
+- OpenAI API
+- Firebase (for future features) 
